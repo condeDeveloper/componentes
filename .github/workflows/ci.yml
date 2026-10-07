@@ -1,0 +1,49 @@
+name: testes
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  testes:
+    runs-on: ${{ matrix.so }}
+
+    strategy:
+      fail-fast: false
+      matrix:
+        so: [ubuntu-latest, windows-latest, macos-latest]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      # O juiz e a DEFINICAO: dois vertices estao na mesma componente quando se
+      # alcancam nos dois sentidos, e isso sai de uma busca saindo de cada
+      # vertice. Comparar Tarjan com Kosaraju diz quando eles discordam e nao diz
+      # qual esta certo.
+      #
+      # A suite inclui um caminho de DUZENTOS MIL vertices em fila, com
+      # profundidade de busca de duzentos mil. Uma versao recursiva estouraria a
+      # pilha, e no macOS ela estouraria primeiro: um repositorio vizinho levou
+      # "Test host process crashed: Stack overflow" la com profundidade menor.
+      - name: testes
+        run: dotnet test testes/Componentes.Testes/Componentes.Testes.csproj -c Release --nologo -v q
+
+      - name: os tres algoritmos contra a definicao
+        run: dotnet run --project ferramentas/Medidor/Medidor.csproj -c Release -- definicao
+
+      - name: a versao plausivel do Tarjan em 500 grafos sorteados
+        run: dotnet run --project ferramentas/Medidor/Medidor.csproj -c Release -- plausivel
+
+      - name: a ordem que vem de graca junto da resposta
+        run: dotnet run --project ferramentas/Medidor/Medidor.csproj -c Release -- ordem
+
+      - name: o custo e a profundidade nos grafos grandes
+        run: dotnet run --project ferramentas/Medidor/Medidor.csproj -c Release -- custo
+
+      - name: o tamanho das componentes com as arestas crescendo
+        run: dotnet run --project ferramentas/Medidor/Medidor.csproj -c Release -- tamanho
